@@ -40,7 +40,7 @@ def hashkey(datas):
     return hashkey
 
 
-def get_current_price(code="005930"):
+def get_current_price(code="005930"): # 주식 현재가 시세
     """현재가 조회"""
     PATH = "uapi/domestic-stock/v1/quotations/inquire-price"
     URL = f"{URL_BASE}/{PATH}"
@@ -55,6 +55,7 @@ def get_current_price(code="005930"):
     }
     res = requests.get(URL, headers=headers, params=params)
     return int(res.json()['output']['stck_prpr']), float(res.json()['output']['prdy_vrss_vol_rate'])
+    # Return: 주식 현재가, 전일 대비 거래량 비율
 
 
 def get_target_price(code="005930"):
@@ -156,7 +157,7 @@ def get_stock_balance():
     print(f"====주식 보유잔고====")
     for stock in stock_list:
         if int(stock['hldg_qty']) > 0:
-            stock_dict[stock['pdno']] = [stock['hldg_qty'], stock['evlu_pfls_rt']]  # 0: 보유 수량, 1: 평가수익율
+            stock_dict[stock['pdno']] = [stock['hldg_qty'], stock['ord_psbl_qty'], stock['evlu_pfls_rt']]  # 0: 보유 수량, 1: 평가수익율
             print(f"{stock['prdt_name']}({stock['pdno']}): {stock['hldg_qty']}주")
             time.sleep(0.1)
     print(f"주식 평가 금액: {evaluation[0]['scts_evlu_amt']}원")
@@ -195,7 +196,7 @@ def get_balance():
     return int(cash)
 
 
-def buy(code="005930", qty="1"):
+def buy(code="005930", qty="1", buy_price="0"):
     """주식 시장가 매수"""
     PATH = "uapi/domestic-stock/v1/trading/order-cash"
     URL = f"{URL_BASE}/{PATH}"
@@ -203,9 +204,9 @@ def buy(code="005930", qty="1"):
         "CANO": CANO,
         "ACNT_PRDT_CD": ACNT_PRDT_CD,
         "PDNO": code,
-        "ORD_DVSN": "01",
-        "ORD_QTY": str(int(qty)),
-        "ORD_UNPR": "0",
+        "ORD_DVSN": "00",
+        "ORD_QTY": qty,
+        "ORD_UNPR": buy_price,
     }
     headers = {"Content-Type": "application/json",
                "authorization": f"Bearer {ACCESS_TOKEN}",
@@ -224,17 +225,18 @@ def buy(code="005930", qty="1"):
         return False
 
 
-def sell(code="005930", qty="1"):
+def sell(code="005930", qty="1", sell_price="0", sell_type="00"):
     """주식 시장가 매도"""
+
     PATH = "uapi/domestic-stock/v1/trading/order-cash"
     URL = f"{URL_BASE}/{PATH}"
     data = {
         "CANO": CANO,
         "ACNT_PRDT_CD": ACNT_PRDT_CD,
         "PDNO": code,
-        "ORD_DVSN": "01",
+        "ORD_DVSN": sell_type,
         "ORD_QTY": qty,
-        "ORD_UNPR": "0",
+        "ORD_UNPR": sell_price,
     }
     headers = {"Content-Type": "application/json",
                "authorization": f"Bearer {ACCESS_TOKEN}",
@@ -256,6 +258,22 @@ def sell(code="005930", qty="1"):
 ACCESS_TOKEN = get_access_token()
 
 
+def ho(x):
+    if x >= 500000:
+        return 1000
+    elif x >= 100000:
+        return 500
+    elif x >= 50000:
+        return 100
+    elif x >= 10000:
+        return 50
+    elif x >= 5000:
+        return 10
+    elif x > 1000:
+        return 5
+    else:
+        return 1
+
 def auto_trading():  # 매수 희망 종목 리스트
     print("===국내 주식 자동매매 프로그램을 시작합니다===")
     # 자동매매 시작
@@ -265,7 +283,7 @@ def auto_trading():  # 매수 희망 종목 리스트
 
             t_now = datetime.datetime.now()
             t_9 = t_now.replace(hour=9, minute=0, second=0, microsecond=0)
-            t_start = t_now.replace(hour=15, minute=15, second=0, microsecond=0)
+            t_start = t_now.replace(hour=12, minute=7, second=0, microsecond=0)
             t_sell = t_now.replace(hour=15, minute=19, second=0, microsecond=0)
             t_exit = t_now.replace(hour=15, minute=20, second=0, microsecond=0)
             today = datetime.datetime.today().weekday()
@@ -322,26 +340,36 @@ def auto_trading():  # 매수 희망 종목 리스트
                             if (buy_qty > 0):
 
                                 print(f"{sym} 목표가 달성({target_price} < {current_price}) 매수를 시도합니다.")
-                                result = buy(sym, buy_qty)
+                                buy_price = float(current_price) - ho(float(current_price))
+                                print(sym, str(int(buy_qty)), str(int(buy_price)))
+                                result = buy(sym, str(int(buy_qty)), str(int(buy_price)))
                                 if result:
                                     bought_list.append(sym)  # 매수 종목
-                                    get_stock_balance()
+
 
                         time.sleep(1)
 
-                # 장 중 매도 코드
+                # 장 중 매도 코드 (지정가)
                 balance_dict = get_stock_balance()
-                for sym, qty_rt in balance_dict.items():  # qty_rt / [0]: qty(보유수량), [1]: rt(평가수익율)
 
-                    print(f'{sym} 현재 수익율: {float(qty_rt[1]): 5.2f}')
-                    if float(qty_rt[1]) > 2.0 or float(qty_rt[1]) < -2.0:  # 익절 라인은 dynamic 하게 바꿀 수 있다 (단위 %)
-                        sell(sym, qty_rt[0])
+                for sym, qty_rt in balance_dict.items():  # qty_rt / [0]: 보유수량, [1] 주문가능 수량 [2]: rt(평가수익율)
+
+                    print(f'{sym} 현재 수익율: {float(qty_rt[2]): 5.2f}')
+                    current_price, volume_rate = get_current_price(sym)
+                    sell_price = float(current_price) + ho(float(current_price))  # 한 호가 높여 매도 주문
+
+                    if float(qty_rt[2]) > 1.5 or float(qty_rt[2]) < -1.5:  # 익절 라인은 dynamic 하게 바꿀 수 있다 (단위 %)
+
+                        print(sym, str(qty_rt[1]), str(int(sell_price))) # 매도 주문 인자 정보
+                        if float(qty_rt[1])!=0:
+                            # sell(sym, str(qty_rt[1]), str(int(sell_price)), "00") # "00 지정가 매도
+                            sell(sym, str(qty_rt[1]), "0", "01") # "01 시장가 메도
 
                 time.sleep(1)
 
-                if t_now.minute == 30 and t_now.second <= 5:  # 매 30분 마다 코드가 잘 돌아가는 지 확인하는 코드
-                    get_stock_balance()
-                    time.sleep(5)
+                if t_now.minute == 30 and t_now.second <= 5:  # 매 30분 마다 창 지움
+                    os.system('cls')
+                    time.sleep(1)
 
             # PM 03:15 ~ PM 03:20 : 5th Day 를 맞이한 종목들 일괄 매도
             if t_sell < t_now < t_exit:

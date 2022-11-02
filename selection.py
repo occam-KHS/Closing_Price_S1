@@ -116,7 +116,7 @@ def select_stocks(today_dt):
     # select_tops = tops[(tops['return'] > 1.03) & (tops['price_z'] < 0)][['name','return','price_z','yhat', 'kosdaq_return','close']]  # 오전장 매수 시
     # select_tops = tops[(tops['return'] > 1.03) & (tops['volume_z'] > 2) & (tops['price_z'] > 2)][['name','return','price_z','volume_z','yhat', 'kosdaq_return','close']]  # 종가 매수 전략 시
 
-    select_tops = tops[(tops['return']>1) & (tops['high']/tops['close'] < 1.015)]
+    select_tops = tops[(tops['return']>1) & (tops['high']/tops['close'] < 1.015) & (tops['volume_z'] > 1.1)]
 
     if len(select_tops) > 0: # 최소한 2개 종목 - 추천 리스크 분산
         return select_tops    
