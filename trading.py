@@ -283,8 +283,8 @@ def auto_trading():  # 매수 희망 종목 리스트
 
             t_now = datetime.datetime.now()
             t_9 = t_now.replace(hour=9, minute=1, second=0, microsecond=0)
-            t_start = t_now.replace(hour=9, minute=5, second=0, microsecond=0)
-            t_sell = t_now.replace(hour=15, minute=18, second=0, microsecond=0)
+            t_start = t_now.replace(hour=9, minute=10, second=0, microsecond=0)
+            t_sell = t_now.replace(hour=15, minute=17, second=0, microsecond=0)
             t_exit = t_now.replace(hour=15, minute=20, second=0, microsecond=0)
             today = datetime.datetime.today().weekday()
 
@@ -295,7 +295,7 @@ def auto_trading():  # 매수 희망 종목 리스트
             if t_9 < t_now < t_sell:  # AM 09:00 ~ PM 03:19
 
                 # 장 중 매수 코드
-                if (t_start < t_now) and (t_now.minute%15 == 0):
+                if (t_start < t_now) and (t_now.minute%10 == 0):
                     # 종목 선정
                     today = t_now.strftime('%Y-%m-%d')  # 오늘
 
@@ -324,7 +324,7 @@ def auto_trading():  # 매수 희망 종목 리스트
                     else:
                         buy_percent = 0  # 종목당 매수 금액 비율
 
-                    buy_amount = total_cash * 0.5 * buy_percent  # 종목별 주문 금액 계산
+                    buy_amount = total_cash * 0.3 * buy_percent  # 종목별 주문 금액 계산
 
                     # 매수 코드
                     for sym in symbol_list:
@@ -341,7 +341,7 @@ def auto_trading():  # 매수 희망 종목 리스트
                         print(f'전일 대비 거래량 비율: {volume_rate:4.1f}')
                         print(
                             f'종목: {sym}, 현재가: {current_price}, 전일종가: {target_price}, 거래량지표: {float(volume_rate / t_progress):5.1f}')
-                        if c1 and c2:  # Max: 5% 상승 가격, Min: 전날 종가
+                        if c2:  # Max: 5% 상승 가격, Min: 전날 종가
 
                             buy_qty = 0  # 매수할 수량 초기화
                             buy_qty = int(buy_amount // current_price)
@@ -351,6 +351,7 @@ def auto_trading():  # 매수 희망 종목 리스트
                                 buy_price = float(current_price) - ho(float(current_price))
                                 print(sym, str(int(buy_qty)), str(int(buy_price)))
                                 result = buy(sym, str(int(buy_qty)), str(int(buy_price)))
+                                # result = buy(sym, str(int(buy_qty)), "0", "01")
                                 if result:
                                     bought_list.append(sym)  # 매수 종목
 
@@ -383,15 +384,13 @@ def auto_trading():  # 매수 희망 종목 리스트
                     os.system('cls')
                     time.sleep(1)
 
-            # PM 03:15 ~ PM 03:20 : 5th Day 를 맞이한 종목들 일괄 매도
+            # PM 03:17 ~ PM 03:20 : 전량 시장가 매도
+            balance_dict = get_stock_balance()
+
             if t_sell < t_now < t_exit:
 
-                sell_list_5d_over = get_stock_5d_before()
-                stock_dict = get_stock_balance()
-
-                sell_list = list(set(stock_dict.keys()) & set(sell_list_5d_over))  # 보유종목 중 5일이상 된 종목
-                for sym in sell_list:
-                    sell(sym, stock_dict['sym'][0])  # 보유종목 중 5일이상 된 종목 전량 매도     
+                for sym, qty_rt in balance_dict.items():
+                    sell(sym, str(qty_rt[1]), "0", "01") # "01 전량 시장가 메도
 
                 time.sleep(1)
 
