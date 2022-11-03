@@ -54,7 +54,7 @@ def get_current_price(code="005930"): # 주식 현재가 시세
         "fid_input_iscd": code,
     }
     res = requests.get(URL, headers=headers, params=params)
-    return int(res.json()['output']['stck_prpr']), float(res.json()['output']['prdy_vrss_vol_rate'])
+    return int(res.json()['output']['stck_prpr']), float(res.json()['output']['prdy_vrss_vol_rate']) #전일 대비 거래량 비율
     # Return: 주식 현재가, 전일 대비 거래량 비율
 
 
@@ -278,13 +278,13 @@ def auto_trading():  # 매수 희망 종목 리스트
     print("===국내 주식 자동매매 프로그램을 시작합니다===")
     # 자동매매 시작
     try:
-        flag = 0
+        # flag = 0
         while True:
 
             t_now = datetime.datetime.now()
-            t_9 = t_now.replace(hour=9, minute=0, second=0, microsecond=0)
-            t_start = t_now.replace(hour=12, minute=7, second=0, microsecond=0)
-            t_sell = t_now.replace(hour=15, minute=19, second=0, microsecond=0)
+            t_9 = t_now.replace(hour=9, minute=1, second=0, microsecond=0)
+            t_start = t_now.replace(hour=9, minute=5, second=0, microsecond=0)
+            t_sell = t_now.replace(hour=15, minute=18, second=0, microsecond=0)
             t_exit = t_now.replace(hour=15, minute=20, second=0, microsecond=0)
             today = datetime.datetime.today().weekday()
 
@@ -295,14 +295,20 @@ def auto_trading():  # 매수 희망 종목 리스트
             if t_9 < t_now < t_sell:  # AM 09:00 ~ PM 03:19
 
                 # 장 중 매수 코드
-                if (t_start < t_now) and flag == 0:
+                if (t_start < t_now) and (t_now.minute%15 == 0):
                     # 종목 선정
                     today = t_now.strftime('%Y-%m-%d')  # 오늘
-                    select_tops = selection.select_stocks(today).sort_values(by='yhat', ascending=False).head(6)
 
-                    symbol_list = list(select_tops.index)
+                    select_tops = selection.select_stocks(today)
+
+                    if len(select_tops) > 0:
+                        select_tops = select_tops.sort_values(by='yhat', ascending=False).head(6)
+                        symbol_list = list(select_tops.index)
+                    else:
+                        symbol_list = []
+
                     print(symbol_list)
-                    flag = 1
+                    # flag = 1
 
                     bought_list = []  # 매수 완료된 종목 리스트
                     total_cash = get_balance()  # 보유 현금 조회
@@ -326,11 +332,13 @@ def auto_trading():  # 매수 희망 종목 리스트
                         target_price = get_target_price(sym)  # 전날 종가, Get from Input dictionary
                         current_price, volume_rate = get_current_price(sym)
 
-                        t_progress = (t_now - t_9) / (t_exit - t_9)
+                        t_progress = ((t_now - t_9) / (t_exit - t_9))*100
+                        volume_rate = float(volume_rate)
 
                         c1 = (target_price < current_price)
-                        c2 = (float(volume_rate / t_progress) > 1.0)
+                        c2 = ((volume_rate/t_progress) > 1.5)
                         print(c1, c2)
+                        print(f'전일 대비 거래량 비율: {volume_rate:4.1f}')
                         print(
                             f'종목: {sym}, 현재가: {current_price}, 전일종가: {target_price}, 거래량지표: {float(volume_rate / t_progress):5.1f}')
                         if c1 and c2:  # Max: 5% 상승 가격, Min: 전날 종가
@@ -356,6 +364,10 @@ def auto_trading():  # 매수 희망 종목 리스트
 
                     print(f'{sym} 현재 수익율: {float(qty_rt[2]): 5.2f}')
                     current_price, volume_rate = get_current_price(sym)
+                    # t_progress = ((t_now - t_9) / (t_exit - t_9)) * 100
+                    # print(f' 보유종목 거래량 비율 {float(volume_rate):4.1f}')
+                    # print(f'{t_progress: 4.1f}')
+
                     sell_price = float(current_price) + ho(float(current_price))  # 한 호가 높여 매도 주문
 
                     if float(qty_rt[2]) > 1.5 or float(qty_rt[2]) < -1.5:  # 익절 라인은 dynamic 하게 바꿀 수 있다 (단위 %)
@@ -367,7 +379,7 @@ def auto_trading():  # 매수 희망 종목 리스트
 
                 time.sleep(1)
 
-                if t_now.minute == 30 and t_now.second <= 5:  # 매 30분 마다 창 지움
+                if t_now.minute%25 == 0:  # 매 25분 마다 창 지움
                     os.system('cls')
                     time.sleep(1)
 
