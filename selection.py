@@ -102,7 +102,7 @@ def select_stocks(today_dt):
 
     feature_list = ['price_z','volume_z','num_high/close','num_win_market','pct_win_market','return over sector']
 
-    X = model_inputs.loc[today_dt][['code','name','return','kosdaq_return','close','high'] + feature_list].set_index('code')
+    X = model_inputs.loc[today_dt][['code','name','return','kosdaq_return','close','high','open'] + feature_list].set_index('code')
 
     with open("gam.pkl", "rb") as file:
         gam = pickle.load(file)     
@@ -116,7 +116,7 @@ def select_stocks(today_dt):
     # select_tops = tops[(tops['return'] > 1.03) & (tops['price_z'] < 0)][['name','return','price_z','yhat', 'kosdaq_return','close']]  # 오전장 매수 시
     # select_tops = tops[(tops['return'] > 1.03) & (tops['volume_z'] > 2) & (tops['price_z'] > 2)][['name','return','price_z','volume_z','yhat', 'kosdaq_return','close']]  # 종가 매수 전략 시
 
-    select_tops = tops[ (tops['return'].between(1.02, 1.09)) & ((tops['high']/tops['close']) < 1.01) ]
+    select_tops = tops[ (tops['return'].between(1.02, 1.09)) & ((tops['high']/tops['close']) < 1.01) & ((tops['close']/tops['open']) > 1.0)] # 어제 종가 대비
 
     if len(select_tops) > 0: # 최소한 2개 종목 - 추천 리스크 분산
         return select_tops    
