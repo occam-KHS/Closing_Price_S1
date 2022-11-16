@@ -284,7 +284,7 @@ def auto_trading():  # 매수 희망 종목 리스트
             t_now = datetime.datetime.now()
             t_9 = t_now.replace(hour=9, minute=1, second=0, microsecond=0)
             t_clear = t_now.replace(hour=9, minute=15, second=0, microsecond=0)
-            t_start = t_now.replace(hour=9, minute=45, second=0, microsecond=0)
+            t_start = t_now.replace(hour=9, minute=55, second=0, microsecond=0)
             t_sell = t_now.replace(hour=15, minute=15, second=0, microsecond=0)
             t_exit = t_now.replace(hour=15, minute=20, second=0, microsecond=0)
             today = datetime.datetime.today().weekday()
@@ -337,7 +337,7 @@ def auto_trading():  # 매수 희망 종목 리스트
                         volume_rate = float(volume_rate)
 
                         c1 = (target_price < current_price)
-                        c2 = ((volume_rate/t_progress) > 1.5)
+                        c2 = ((volume_rate/t_progress) > 1.6)
                         print(c1, c2)
                         print(f'전일 대비 거래량 비율: {volume_rate:4.1f}')
                         print(
@@ -372,7 +372,7 @@ def auto_trading():  # 매수 희망 종목 리스트
 
                     sell_price = float(current_price) + ho(float(current_price))  # 한 호가 높여 매도 주문
 
-                    if float(qty_rt[2]) > 2.5 or float(qty_rt[2]) < -4.5:  # 익절 라인은 dynamic 하게 바꿀 수 있다 (단위 %)
+                    if float(qty_rt[2]) > 2.5 or float(qty_rt[2]) < -5.5:  # 익절 라인은 dynamic 하게 바꿀 수 있다 (단위 %)
 
                         print(sym, str(qty_rt[1]), str(int(sell_price))) # 매도 주문 인자 정보
                         if float(qty_rt[1])!=0:
@@ -391,7 +391,7 @@ def auto_trading():  # 매수 희망 종목 리스트
                 balance_dict = get_stock_balance()
                 for sym, qty_rt in balance_dict.items():
 
-                    if (float(qty_rt[2]) > 1.5) or (float(qty_rt[2]) < -3.5):
+                    if (float(qty_rt[2]) > 1.5) or (float(qty_rt[2]) < -4.5):
                         sell(sym, str(qty_rt[1]), "0", "01") # "01 전량 시장가 메도
 
                     # PM 09:15 ~ PM 09:45 : 전량 매도
