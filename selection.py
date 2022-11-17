@@ -29,11 +29,11 @@ def select_stocks(today_dt):
     price_data.columns= price_data.columns.str.lower() # 컬럼 이름 소문자로 변경
 
     # DataReder 코스닥 인덱스 조회 실패시, 야후파이낸스로 추출    
-    # kosdaq_index = fdr.DataReader('KQ11', start = start_dt, end = today_dt) # 데이터 호출
-    # kosdaq_index.columns = ['close','open','high','low','volume','change'] # 컬럼명 변경
+    kosdaq_index = fdr.DataReader('229200', start = start_dt, end = today_dt) # 데이터 호출
+    kosdaq_index.columns = ['close','open','high','low','volume','change'] # 컬럼명 변경
     
-    kosdaq_index =  yf.download('^KQ11', start = start_dt)
-    kosdaq_index.columns = ['open','high','low','close','adj_close','volume'] # 컬럼명 변경
+    # kosdaq_index =  yf.download('^KQ11', start = start_dt)
+    # kosdaq_index.columns = ['open','high','low','close','adj_close','volume'] # 컬럼명 변경
     kosdaq_index.index.name='date' # 인덱스 이름 생성
     kosdaq_index.sort_index(inplace=True) # 인덱스(날짜) 로 정렬 
     kosdaq_index['kosdaq_return'] = kosdaq_index['close']/kosdaq_index['close'].shift(1) # 수익율 : 전 날 종가대비 당일 종가
@@ -117,6 +117,7 @@ def select_stocks(today_dt):
     # select_tops = tops[(tops['return'] > 1.03) & (tops['volume_z'] > 2) & (tops['price_z'] > 2)][['name','return','price_z','volume_z','yhat', 'kosdaq_return','close']]  # 종가 매수 전략 시
 
     select_tops = tops[ (tops['return'].between(1.02, 1.08)) & ((tops['high']/tops['close']) < 1.01) & ((tops['close']/tops['open']) > 1.0)] # 어제 종가 대비
+    print(len(select_tops))
 
     if len(select_tops) > 0: # 최소한 2개 종목 - 추천 리스크 분산
         return select_tops    

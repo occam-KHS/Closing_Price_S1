@@ -278,12 +278,11 @@ def auto_trading():  # 매수 희망 종목 리스트
     print("===국내 주식 자동매매 프로그램을 시작합니다===")
     # 자동매매 시작
     try:
-        # flag = 0
+
         while True:
 
             t_now = datetime.datetime.now()
-            t_9 = t_now.replace(hour=9, minute=1, second=0, microsecond=0)
-            t_clear = t_now.replace(hour=9, minute=15, second=0, microsecond=0)
+            t_9 = t_now.replace(hour=9, minute=5, second=0, microsecond=0)
             t_start = t_now.replace(hour=9, minute=55, second=0, microsecond=0)
             t_sell = t_now.replace(hour=15, minute=15, second=0, microsecond=0)
             t_exit = t_now.replace(hour=15, minute=20, second=0, microsecond=0)
@@ -385,18 +384,12 @@ def auto_trading():  # 매수 희망 종목 리스트
                     os.system('cls')
                     time.sleep(1)
 
-            # PM 09:01 ~ PM 09:45 : 관찰
+                    # PM 09:15 ~ PM 09:45 : 전량 매도
             if t_9 < t_now < t_start:
 
                 balance_dict = get_stock_balance()
                 for sym, qty_rt in balance_dict.items():
-
-                    if (float(qty_rt[2]) > 1.5) or (float(qty_rt[2]) < -4.5):
-                        sell(sym, str(qty_rt[1]), "0", "01") # "01 전량 시장가 메도
-
-                    # PM 09:15 ~ PM 09:45 : 전량 매도
-                    if t_clear < t_now:
-                        sell(sym, str(qty_rt[1]), "0", "01")  # "01 전량 시장가 메도
+                    sell(sym, str(qty_rt[1]), "0", "01")  # "01 전량 시장가 메도
 
                 time.sleep(1)
 
